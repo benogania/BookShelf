@@ -469,10 +469,10 @@ export default function PdfReader() {
   if (!book || !book.download_link) return <div className="text-center py-32 text-xl font-bold">PDF Not Available</div>;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-0px)] bg-slate-100 dark:bg-[#0f172a] text-slate-900 dark:text-white relative">
+    <div className="flex flex-col h-[calc(100vh-0px)] p-0 m-0 bg-slate-100 dark:bg-[#0f172a] text-slate-900 dark:text-white relative">
       
       {/* --- TOP HEADER (Buttons moved to toolbar) --- */}
-      <header className="h-14 flex items-center px-4 md:px-6 bg-white dark:bg-[#1e293b] border-b border-slate-200 dark:border-slate-800 shrink-0 shadow-sm z-20">
+      <header className="h-14 flex items-center  px-4 md:px-6 bg-white dark:bg-[#1e293b] border-b border-slate-200 dark:border-slate-800 shrink-0 shadow-sm z-20">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0">
             <FiArrowLeft className="text-xl" />
@@ -545,7 +545,7 @@ export default function PdfReader() {
             </div>
 
             {/* List Content */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 bg-slate-50 dark:bg-[#0f172a] w-80">
+            <div className="flex-1 overflow-y-auto custom-scrollbar  bg-slate-50 dark:bg-[#0f172a] w-80">
               {filteredNotes.length === 0 ? (
                 <div className="text-center text-slate-400 dark:text-slate-500 mt-10 text-sm px-4">
                   {activeTab === 'highlights' && "No highlights yet. Select text and pick a color."}

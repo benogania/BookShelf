@@ -28,9 +28,9 @@ export default function BookDetails() {
 
         if (bookRes.data?.category && bookRes.data.category !== 'Uncategorized') {
           const relatedRes = await axios.get('http://localhost:5000/api/books', {
-            params: { status: 'available', limit: 11, category: bookRes.data.category }
+            params: { status: 'available', limit: 12, category: bookRes.data.category }
           });
-          const filtered = relatedRes.data.data.filter(b => b._id !== id).slice(0, 10);
+          const filtered = relatedRes.data.data.filter(b => b._id !== id).slice(0, 12);
           setRelatedBooks(filtered);
         }
       } catch (error) {
