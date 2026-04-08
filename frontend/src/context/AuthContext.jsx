@@ -7,29 +7,29 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Check for existing token on initial load
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const role = localStorage.getItem('role');
+    // We use 'adminToken' so it doesn't conflict with the user app!
+    const token = localStorage.getItem('adminToken');
+    const username = localStorage.getItem('adminUsername');
     
     if (token) {
-      setUser({ token, role });
-      // Automatically attach token to all future Axios requests
+      setUser({ token, username });
+      // CRITICAL: This tells Axios to attach the token to EVERY request the admin makes
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     }
     setLoading(false);
   }, []);
 
-  const login = (token, role) => {
-    localStorage.setItem('token', token);
-    localStorage.setItem('role', role);
-    setUser({ token, role });
+  const login = (token, username) => {
+    localStorage.setItem('adminToken', token);
+    localStorage.setItem('adminUsername', username);
+    setUser({ token, username });
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminUsername');
     setUser(null);
     delete axios.defaults.headers.common['Authorization'];
   };

@@ -1,45 +1,66 @@
 const express = require('express');
 const router = express.Router();
 const Log = require('../models/Log');
+const Book = require('../models/Book');
 const { verifyToken, isAdmin } = require('../middleware/auth');
 
-// GET all logs with Pagination and Filter
-router.get('/', [verifyToken, isAdmin], async (req, res) => {
+// 1. POST: Log a download (Triggered by the User App)
+router.post('/download/:bookId', verifyToken, async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10; // Show 10 logs per page
-    const type = req.query.type || '';
+    const userId = req.userId || (req.user && (req.user.id || req.user._id));
+    const book = await Book.findById(req.params.bookId);
 
-    let query = {};
-    if (type && type !== 'all') {
-      query.type = type;
-    }
+    if (!book) return res.status(404).json({ message: 'Book not found' });
 
-    const total = await Log.countDocuments(query);
-    const logs = await Log.find(query)
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .sort({ createdAt: -1 });
-
-    res.json({
-      data: logs,
-      currentPage: page,
-      totalPages: Math.ceil(total / limit),
-      totalItems: total
+    const newLog = new Log({
+      user: userId,
+      book: book._id,
+      action: 'DOWNLOAD',
+      details: `Downloaded book: ${book.title}`
     });
+
+    await newLog.save();
+    res.status(201).json({ message: 'Download logged successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching logs' });
+    console.error("Logging error:", error);
+    res.status(500).json({ message: 'Server error logging download' });
   }
 });
 
-// POST a new log (Useful for tracking downloads later)
-router.post('/', verifyToken, async (req, res) => {
+
+
+// 2. GET: Fetch all logs (For the Admin Dashboard)
+router.get('/', [verifyToken, isAdmin], async (req, res) => {
   try {
-    const newLog = new Log(req.body);
-    await newLog.save();
-    res.status(201).json(newLog);
+    const logs = await Log.find()
+      .populate('user', 'username email') // Pull in user info
+      .populate('book', 'title format')   // Pull in book info
+      .sort({ createdAt: -1 });           // Newest first
+
+    res.json(logs);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error("Fetch logs error:", error);
+    res.status(500).json({ message: 'Server error fetching logs' });
+  }
+});
+
+// GET: Fetch System Stats for Dashboard (Admin Only)
+const User = require('../models/User'); // Make sure to require the User model at the top of the file!
+
+router.get('/stats', [verifyToken, isAdmin], async (req, res) => {
+  try {
+    const totalBooks = await Book.countDocuments();
+    const totalUsers = await User.countDocuments(); 
+    const totalDownloads = await Log.countDocuments({ action: 'DOWNLOAD' });
+
+    res.json({
+      totalBooks,
+      totalUsers,
+      totalDownloads
+    });
+  } catch (error) {
+    console.error("Stats fetch error:", error);
+    res.status(500).json({ message: 'Server error fetching stats' });
   }
 });
 

@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { NavLink } from 'react-router-dom';
-import { FiHome, FiBook, FiUsers, FiDownload, FiSettings, FiMoon, FiSun } from 'react-icons/fi';
+// --- UPDATED: Added FiRadio to the imports ---
+import { FiHome, FiBook, FiUsers, FiDownload, FiSettings, FiMoon, FiSun, FiShield, FiRadio } from 'react-icons/fi'; 
 import { BsShieldCheck } from 'react-icons/bs';
-import { AuthContext } from '../context/AuthContext'; // Import the context
+import { AuthContext } from '../context/AuthContext'; 
 
 export default function Sidebar() {
-  const savedUsername = localStorage.getItem('username') || 'System Admin';
-  const savedRole = localStorage.getItem('role') || 'admin';
-  const initial = savedUsername.charAt(0).toUpperCase();
+  const { user } = useContext(AuthContext); 
 
-  const { user } = useContext(AuthContext); // Grab the logged-in user
+  const currentUsername = user?.username || localStorage.getItem('adminUsername') || 'Admin';
+  const initial = currentUsername.charAt(0).toUpperCase();
+  const savedRole = 'admin'; 
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -26,18 +27,21 @@ export default function Sidebar() {
     }
   }, [isDarkMode]);
 
+  // --- UPDATED: Added Notify Users to the navigation list ---
   const navLinks = [
     { name: 'Dashboard', path: '/dashboard', icon: <FiHome /> },
-    { name: 'Book Inventory', path: '/books', icon: <FiBook />, badge: 5 },
+    { name: 'Book Inventory', path: '/books', icon: <FiBook />, badge: 75 },
     { name: 'User Management', path: '/users', icon: <FiUsers /> },
     { name: 'Downloads', path: '/downloads', icon: <FiDownload /> },
+    { name: 'Restricted Books', path: '/restricted-books', icon: <FiShield /> }, 
+    { name: 'Notify Users', path: '/notify-users', icon: <FiRadio /> }, // <--- NEW TAB
   ];
 
   return (
     <aside className="w-64 flex flex-col bg-white dark:bg-[#1e293b] border-r border-gray-100 dark:border-slate-800 transition-colors duration-200 h-screen sticky top-0 z-20">
       
       {/* Logo Area */}
-      <div className="h-16 flex items-center px-6 border-b border-gray-100 dark:border-slate-800">
+      <div className="h-16 flex items-center px-6 border-b border-gray-100 dark:border-slate-800 shrink-0">
         <BsShieldCheck className="text-2xl text-slate-800 dark:text-white mr-2" />
         <span className="text-xl font-bold text-slate-800 dark:text-white">
           Book <span className="text-blue-500">Shelf</span>
@@ -92,18 +96,16 @@ export default function Sidebar() {
       </div>
 
       {/* Dynamic User Profile & Theme Toggle */}
-      <div className="p-4 border-t border-gray-100 dark:border-slate-800 flex flex-col gap-4">
+      <div className="p-4 border-t border-gray-100 dark:border-slate-800 flex flex-col gap-4 shrink-0">
         <div className="flex items-center gap-3 px-2">
           
-          {/* Avatar: First Letter of Username */}
-          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold uppercase shadow-sm">
+          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold uppercase shadow-sm shrink-0">
             {initial}
           </div>
           
           <div className="flex flex-col overflow-hidden">
-            {/* Display the Username */}
             <span className="text-sm font-medium text-gray-900 dark:text-white capitalize truncate">
-              {savedUsername}
+              {currentUsername}
             </span>
             <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
               {savedRole}@bookshelf.edu

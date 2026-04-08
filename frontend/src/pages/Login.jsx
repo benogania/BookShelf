@@ -13,31 +13,42 @@ export default function Login() {
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
+ const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
     try {
+      // 1. AUTO-CLEANUP: Wipe any standard user tokens so they don't contaminate the Admin session
+      localStorage.removeItem('token');
+      localStorage.removeItem('username');
+      localStorage.removeItem('role');
+
+      // 2. MUST use the full localhost:5000 URL
       const response = await axios.post('http://localhost:5000/api/auth/login', {
         username,
         password
       });
 
-      // Extract token and user from backend response
-      const { token, user } = response.data;
+      // 3. BULLETPROOF PARSING: Catch the user data no matter how the backend formats it
+      const currentToken = response.data.token;
+      const currentUser = response.data.user || response.data.admin || response.data.data;
       
-      // -> ADD THIS LINE: Save the username to local storage
-      localStorage.setItem('username', user.username); 
-      
-      // Update global auth state
-      login(token, user.role);
+      if (!currentUser) {
+        return setError('Server Error: Could not read user data from response.');
+      }
 
-      // Redirect to the dashboard/books page
-      navigate('/books');
+      // 4. SECURITY CHECK: Ensure they are actually an admin!
+      if (currentUser.role !== 'admin') {
+        return setError('Access Denied: You do not have administrator privileges.');
+      }
+      
+      // 5. Save to context and redirect (This will securely set 'adminToken')
+      login(currentToken, currentUser.username);
+      navigate('/dashboard'); 
       
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to connect to server.');
+      setError(err.response?.data?.message || 'Invalid username or password.');
     } finally {
       setIsLoading(false);
     }
@@ -53,7 +64,7 @@ export default function Login() {
             <BsShieldCheck className="text-3xl text-blue-600 dark:text-blue-500" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Welcome to Lumina
+            Welcome to BookShelf
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
             Sign in to access the admin panel
@@ -89,11 +100,11 @@ export default function Login() {
               </label>
               <input
                 type="password"
-                required
+             
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 bg-gray-50 dark:bg-[#0f172a] border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white transition-colors"
-                placeholder="••••••••"
+                placeholder="Enter admin password"
               />
             </div>
 

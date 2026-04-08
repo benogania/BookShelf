@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FiUser, FiLock, FiLogOut, FiSave } from 'react-icons/fi';
+import { AuthContext } from '../context/AuthContext';
 
 export default function Settings() {
   const navigate = useNavigate();
+  const { user, login, logout } = useContext(AuthContext);
 
-  // Grab the current username from local storage to display the profile
-  const currentUsername = localStorage.getItem('username') || 'Admin';
+  const currentUsername = user?.username || localStorage.getItem('adminUsername') || 'Admin';
   const initial = currentUsername.charAt(0).toUpperCase();
 
   const [formData, setFormData] = useState({
@@ -21,49 +22,51 @@ export default function Settings() {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setStatus({ type: '', message: '' }); 
   };
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
-    setStatus({ type: '', message: '' });
-
-    // 1. Validate passwords
+    
     if (formData.newPassword && formData.newPassword !== formData.confirmPassword) {
       return setStatus({ type: 'error', message: 'Passwords do not match.' });
     }
 
-    // 2. Ensure at least one field is being updated
     if (!formData.username && !formData.newPassword) {
       return setStatus({ type: 'error', message: 'Please enter a new username or password to update.' });
     }
 
     setLoading(true);
-    try {
-      // 3. Explicitly grab and attach the token (Fixes the update failing)
-      const token = localStorage.getItem('token');
-      const config = {
-        headers: { Authorization: `Bearer ${token}` }
-      };
+    setStatus({ type: '', message: '' });
 
-      // 4. Build the payload
+    try {
       const payload = {};
       if (formData.username) payload.username = formData.username;
-      if (formData.newPassword) payload.newPassword = formData.newPassword;
+      if (formData.newPassword) payload.password = formData.newPassword; 
 
-      // 5. Send to backend
-      await axios.put('http://localhost:5000/api/users/profile', payload, config);
+      // 1. CRITICAL: Explicitly grab the ADMIN token to prevent cross-contamination
+      const adminToken = localStorage.getItem('adminToken');
       
-      // 6. If the username was changed, update LocalStorage so the Sidebar catches it!
-      if (payload.username) {
-        localStorage.setItem('username', payload.username);
+      if (!adminToken) {
+        setLoading(false);
+        return setStatus({ type: 'error', message: 'Authentication error: No admin token found. Please log out and back in.' });
       }
 
-      setStatus({ type: 'success', message: 'Profile updated successfully! Refreshing...' });
+      // 2. Force the header onto this specific request
+      const config = {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      };
+
+      // 3. Send the request with the explicit config
+      const res = await axios.put('http://localhost:5000/api/users/profile', payload, config);
       
-      // 7. Reload the page after 1 second so the Sidebar avatar updates instantly
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      setStatus({ type: 'success', message: 'Profile updated successfully!' });
+
+      if (res.data.username && res.data.username !== currentUsername) {
+        login(adminToken, res.data.username);
+      }
+
+      setFormData({ username: '', newPassword: '', confirmPassword: '' });
 
     } catch (error) {
       console.error("Update Error:", error);
@@ -77,25 +80,19 @@ export default function Settings() {
   };
 
   const handleLogout = () => {
-    // Clear everything from local storage
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
-    localStorage.removeItem('username');
-    // Force redirect to login
+    logout();
     navigate('/login');
-    window.location.reload(); 
   };
 
   return (
     <div className="p-6 text-gray-900 dark:text-gray-100 max-w-4xl mx-auto h-full overflow-y-auto custom-scrollbar">
       <div className="mb-8 flex items-center gap-4">
-        {/* Profile Avatar Header */}
-        <div className="w-14 h-14 rounded-full bg-blue-600 flex items-center justify-center text-white text-2xl font-bold uppercase shadow-md">
+        <div className="w-14 h-14 rounded-full bg-blue-600 flex items-center justify-center text-white text-2xl font-bold uppercase shadow-md shrink-0">
           {initial}
         </div>
-        <div>
+        <div className="overflow-hidden">
           <h1 className="text-2xl font-bold">System Settings</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
             Managing profile for: <span className="font-semibold text-gray-700 dark:text-gray-300 capitalize">{currentUsername}</span>
           </p>
         </div>
@@ -103,7 +100,6 @@ export default function Settings() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         
-        {/* Profile Update Section */}
         <div className="md:col-span-2 space-y-6">
           <div className="bg-white dark:bg-[#1e293b] rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden">
             <div className="px-6 py-5 border-b border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/30">
@@ -180,7 +176,6 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Danger Zone / Logout */}
         <div className="space-y-6">
           <div className="bg-white dark:bg-[#1e293b] rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden">
             <div className="px-6 py-5 border-b border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/30">

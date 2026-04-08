@@ -3,51 +3,48 @@ import axios from 'axios';
 import { useSearchParams } from 'react-router-dom';
 import Pagination from '../components/Pagination';
 import BookModal from '../components/BookModal';
-// Add FiEye to your existing react-icons import
 import { FiEdit, FiTrash2, FiFilter, FiEye } from 'react-icons/fi';
 
 export default function BookInventory() {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ current: 1, total: 1, totalItems: 0 });
-  const [categories, setCategories] = useState([]); // <-- Dynamic Categories State
+  const [categories, setCategories] = useState([]); 
   
   // URL Params State
   const [searchParams, setSearchParams] = useSearchParams();
   const currentPage = parseInt(searchParams.get('page')) || 1;
   const currentSearch = searchParams.get('search') || '';
   const currentCategory = searchParams.get('category') || '';
-  const currentStatus = searchParams.get('status') || ''; // <-- Added
+  const currentStatus = searchParams.get('status') || ''; 
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [bookToEdit, setBookToEdit] = useState(null);
 
-  // Fetch unique genres for the dropdown
   useEffect(() => {
-    const fetchGenres = async () => {
+    const fetchCategories = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/books/genres');
+        const res = await axios.get('http://localhost:5000/api/books/categories'); 
         setCategories(res.data);
       } catch (error) {
-        console.error("Error fetching genres:", error);
+        console.error("Error fetching categories:", error);
       }
     };
-    fetchGenres();
-  }, [books]); // Re-fetch genres if books change (like adding a new one)
+    fetchCategories();
+  }, [books]);
 
   // Fetch Books List
   const fetchBooks = async () => {
-    setLoading(true);
     setLoading(true);
     try {
       const res = await axios.get(`http://localhost:5000/api/books`, {
         params: {
           page: currentPage,
-          limit: 5,
+          limit: 30,
           search: currentSearch,
           category: currentCategory,
-          status: currentStatus // <-- Send status to backend
+          status: currentStatus 
         }
       })
       setBooks(res.data.data);
@@ -63,8 +60,6 @@ export default function BookInventory() {
     }
   };
 
-  // Re-fetch whenever URL parameters change
- // Add currentStatus to the dependency array
   useEffect(() => {
     fetchBooks();
   }, [currentPage, currentSearch, currentCategory, currentStatus]);
@@ -80,7 +75,7 @@ export default function BookInventory() {
     setSearchParams(prev => {
       if (e.target.value) prev.set('status', e.target.value);
       else prev.delete('status');
-      prev.set('page', 1); // Reset to page 1 on new filter
+      prev.set('page', 1); 
       return prev;
     });
   };
@@ -89,14 +84,13 @@ export default function BookInventory() {
     setSearchParams(prev => {
       if (e.target.value) prev.set('category', e.target.value);
       else prev.delete('category');
-      prev.set('page', 1); // Reset to page 1 on new filter
+      prev.set('page', 1); 
       return prev;
     });
   };
 
-  // Entry calculations for the footer
-  const entriesStart = pagination.totalItems === 0 ? 0 : (pagination.current - 1) * 5 + 1;
-  const entriesEnd = Math.min(pagination.current * 5, pagination.totalItems);
+  const entriesStart = pagination.totalItems === 0 ? 0 : (pagination.current - 1) * 30 + 1;
+  const entriesEnd = Math.min(pagination.current * 30, pagination.totalItems);
 
   // Modal Actions
   const handleAddClick = () => { setBookToEdit(null); setIsModalOpen(true); };
@@ -114,14 +108,13 @@ export default function BookInventory() {
   };
 
   const handleToggleStatus = async (book) => {
-    // If isActive is undefined (older books), assume it's true, so we toggle it to false
     const currentStatus = book.isActive !== false; 
     
     try {
       await axios.put(`http://localhost:5000/api/books/${book._id}`, {
         isActive: !currentStatus
       });
-      fetchBooks(); // Refresh the table to show the new status
+      fetchBooks(); 
     } catch (error) {
       console.error("Error toggling book status:", error);
       alert("Failed to update status.");
@@ -136,11 +129,8 @@ export default function BookInventory() {
           <p className="text-sm text-gray-500 dark:text-gray-400">Manage, add, update, and delete library titles.</p>
         </div>
         
-        {/* Filter and Add Button Row */}
-        {/* Filter and Add Button Row */}
         <div className="flex items-center gap-3">
           
-          {/* NEW: Status Filter */}
           <div className="relative">
             <FiEye className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <select 
@@ -154,7 +144,6 @@ export default function BookInventory() {
             </select>
           </div>
 
-          {/* EXISTING: Category Filter */}
           <div className="relative">
             <FiFilter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <select 
@@ -177,7 +166,6 @@ export default function BookInventory() {
 
       <div className="flex-1 bg-white dark:bg-[#1e293b] rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 flex flex-col overflow-hidden">
         
-        {/* THE RESTORED TABLE */}
         <div className="overflow-x-auto flex-1">
           <table className="w-full text-left border-collapse min-w-max">
             <thead>
@@ -206,15 +194,26 @@ export default function BookInventory() {
                           <span className="text-[9px] text-gray-400 text-center leading-tight p-1">Image<br/>Not<br/>Avail.</span>
                         )}
                       </div>
-                      <div>
-                        <div className="font-semibold text-sm text-gray-900 dark:text-gray-100">{book.title}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{book.author}</div>
+                      
+                      {/* --- UPDATED: Title truncation logic applied here --- */}
+                      <div className="flex-1 min-w-0">
+                        <div 
+                          className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate"
+                          title={book.title}
+                        >
+                          {book.title && book.title.length > 50 
+                            ? `${book.title.substring(0, 50)}...` 
+                            : book.title}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                          {book.author}
+                        </div>
                       </div>
                     </td>
 
                     <td className="p-5">
                       <span className="px-2.5 py-1 bg-gray-100 dark:bg-slate-700/50 text-gray-600 dark:text-gray-300 rounded text-xs font-medium">
-                        {(book.genre && book.genre.length > 0) ? book.genre[0] : 'Uncategorized'}
+                        {book.category || 'Uncategorized'} 
                       </span>
                     </td>
 
@@ -222,7 +221,6 @@ export default function BookInventory() {
                       {book.isbn || 'N/A'}
                     </td>
 
-                    {/* Updated Status Column */}
                     <td className="p-5">
                       <div className="flex flex-col gap-1.5 items-start">
                         <button 
@@ -268,7 +266,6 @@ export default function BookInventory() {
           </table>
         </div>
         
-        {/* Footer with correct Entry calculation */}
         <div className="p-4 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between text-sm text-gray-500 dark:text-gray-400 bg-gray-50/50 dark:bg-slate-800/30">
           <div>
             Showing {entriesStart} to {entriesEnd} of {pagination.totalItems} entries

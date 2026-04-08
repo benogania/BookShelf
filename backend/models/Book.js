@@ -10,6 +10,7 @@ const bookSchema = new mongoose.Schema({
     default: [], 
     set: v => Array.isArray(v) ? v.map(str => str.trim()) : v 
   },
+  category: [{ type: String }],
   format: { type: String, enum: ['PDF', 'EPUB', 'Audiobook'], default: 'PDF' },
   language: String,
   size: String,
@@ -18,8 +19,10 @@ const bookSchema = new mongoose.Schema({
   cover_image: String,
   download_link: String,
   
-  // --- NEW FIELD ADDED HERE ---
-  isActive: { type: Boolean, default: true } 
+  isActive: { type: Boolean, default: true },
+
+  // --- NEW FIELD ADDED HERE FOR THE ARCHIVE SYSTEM ---
+  unrestricted: { type: Boolean, default: false } 
   
 }, { timestamps: true });
 

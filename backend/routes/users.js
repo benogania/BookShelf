@@ -2,35 +2,67 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const { verifyToken, isAdmin } = require('../middleware/auth');
+const bcrypt = require('bcryptjs');
 
-// PUT /api/users/profile - Update own credentials
+
+// PUT update logged-in user's profile (Username / Password)
 router.put('/profile', verifyToken, async (req, res) => {
   try {
-    const { username, newPassword } = req.body;
+    console.log("\n======================================");
+    console.log("🛠️ STARTING PROFILE UPDATE");
+    console.log("1. Incoming Data from Frontend/Postman:", req.body);
     
-    // req.userId comes from our verifyToken middleware
-    const user = await User.findById(req.userId);
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    const userId = req.userId || (req.user && (req.user.id || req.user._id));
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
 
-    // Update username if provided
-    if (username) {
-      user.username = username;
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+
+    // Explicitly grab the password
+    const incomingPassword = req.body.password || req.body.newPassword; 
+    console.log("2. Password extracted by backend:", incomingPassword ? "[HIDDEN - RECEIVED]" : "EMPTY/NULL");
+
+    let updates = {};
+
+    // Check Username
+    if (req.body.username && req.body.username.trim() !== '' && req.body.username !== user.username) {
+      const existingUser = await User.findOne({ username: req.body.username });
+      if (existingUser && existingUser._id.toString() !== user._id.toString()) {
+        return res.status(400).json({ message: 'Username is already taken.' });
+      }
+      updates.username = req.body.username;
+      console.log("3. Username update queued:", updates.username);
     }
 
-    // Update and hash new password if provided
-    if (newPassword) {
-      const bcrypt = require('bcryptjs'); // Ensure bcrypt is imported at the top!
+    // Check Password
+    if (incomingPassword && incomingPassword.trim() !== '') {
+      console.log("4. Hashing new password...");
       const salt = await bcrypt.genSalt(10);
-      user.password = await bcrypt.hash(newPassword, salt);
+      updates.password = await bcrypt.hash(incomingPassword, salt);
+      console.log("5. New hash generated successfully!");
+    } else {
+      console.log("4. SKIPPED password hashing because incomingPassword was empty.");
     }
 
-    await user.save();
-    res.json({ message: 'Profile updated successfully', username: user.username });
-    
-  } catch (error) {
-    if (error.code === 11000) {
-      return res.status(400).json({ message: 'Username is already taken.' });
+    console.log("6. Final Update Object sending to DB:", Object.keys(updates));
+
+    if (Object.keys(updates).length > 0) {
+      // Forcefully update the database, bypassing all model restrictions
+      const dbResult = await User.updateOne({ _id: userId }, { $set: updates });
+      console.log("7. Database Update Result:", dbResult);
+      
+      return res.json({ 
+        message: 'Profile updated successfully!', 
+        username: updates.username || user.username 
+      });
+
+    } else {
+      console.log("❌ ERROR: No changes were queued.");
+      return res.status(400).json({ message: 'No changes were detected.' });
     }
+
+  } catch (error) {
+    console.error('Profile update error:', error);
     res.status(500).json({ message: 'Server error updating profile' });
   }
 });
@@ -38,6 +70,7 @@ router.put('/profile', verifyToken, async (req, res) => {
 
 // GET all users (Admin only) with Search, Filter, and Sort
 router.get('/', [verifyToken, isAdmin], async (req, res) => {
+  console.log('This all the users')
   try {
     const { search, role, sort } = req.query;
     let query = {};
@@ -141,5 +174,9 @@ router.delete('/:id', [verifyToken, isAdmin], async (req, res) => {
     res.status(500).json({ message: 'Error deleting user' });
   }
 });
+
+
+
+
 
 module.exports = router;
