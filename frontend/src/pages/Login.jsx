@@ -24,8 +24,11 @@ export default function Login() {
         password
       });
 
-      // Extract token and role from backend response
+      // Extract token and user from backend response
       const { token, user } = response.data;
+      
+      // -> ADD THIS LINE: Save the username to local storage
+      localStorage.setItem('username', user.username); 
       
       // Update global auth state
       login(token, user.role);

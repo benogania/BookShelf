@@ -3,6 +3,23 @@ const router = express.Router();
 const Book = require('../models/Book');
 const { verifyToken, isAdmin } = require('../middleware/auth');
 
+// GET random available books for the user storefront
+router.get('/random', verifyToken, async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+    
+    // MongoDB's aggregate $sample pulls a truly random set of documents
+    const books = await Book.aggregate([
+      { $match: { isActive: { $ne: false } } }, // Only get available books
+      { $sample: { size: limit } }              // Randomly pick up to 'limit'
+    ]);
+
+    res.json({ data: books });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching random books' });
+  }
+});
+
 // GET all books with Pagination, Search, and Filters
 router.get('/', verifyToken, async (req, res) => {
   try {
@@ -61,6 +78,34 @@ router.get('/genres', verifyToken, async (req, res) => {
     res.json(genres.filter(g => g));
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+// POST multiple books (Bulk Insert - Admin Only)
+router.post('/bulk', [verifyToken, isAdmin], async (req, res) => {
+  try {
+    const booksArray = req.body;
+    
+    if (!Array.isArray(booksArray)) {
+      return res.status(400).json({ message: 'Input must be a JSON array [...]' });
+    }
+
+    // Process genres for each book just like we do for single entries
+    const sanitizedBooks = booksArray.map(book => ({
+      ...book,
+      genre: Array.isArray(book.genre) 
+        ? book.genre 
+        : (typeof book.genre === 'string' ? book.genre.split(',').map(g => g.trim()).filter(Boolean) : [])
+    }));
+
+    // Insert all books at once using Mongoose's insertMany
+    const insertedBooks = await Book.insertMany(sanitizedBooks);
+    res.status(201).json({ 
+      message: `Successfully added ${insertedBooks.length} books.`, 
+      count: insertedBooks.length 
+    });
+  } catch (error) {
+    res.status(400).json({ message: error.message || 'Failed to bulk insert books.' });
   }
 });
 

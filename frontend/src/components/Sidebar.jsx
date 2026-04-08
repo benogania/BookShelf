@@ -5,6 +5,10 @@ import { BsShieldCheck } from 'react-icons/bs';
 import { AuthContext } from '../context/AuthContext'; // Import the context
 
 export default function Sidebar() {
+  const savedUsername = localStorage.getItem('username') || 'System Admin';
+  const savedRole = localStorage.getItem('role') || 'admin';
+  const initial = savedUsername.charAt(0).toUpperCase();
+
   const { user } = useContext(AuthContext); // Grab the logged-in user
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -36,7 +40,7 @@ export default function Sidebar() {
       <div className="h-16 flex items-center px-6 border-b border-gray-100 dark:border-slate-800">
         <BsShieldCheck className="text-2xl text-slate-800 dark:text-white mr-2" />
         <span className="text-xl font-bold text-slate-800 dark:text-white">
-          Lumina <span className="text-blue-500">Admin</span>
+          Book <span className="text-blue-500">Shelf</span>
         </span>
       </div>
 
@@ -93,20 +97,21 @@ export default function Sidebar() {
           
           {/* Avatar: First Letter of Username */}
           <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold uppercase shadow-sm">
-            {user?.username ? user.username.charAt(0) : 'A'}
+            {initial}
           </div>
           
           <div className="flex flex-col overflow-hidden">
             {/* Display the Username */}
             <span className="text-sm font-medium text-gray-900 dark:text-white capitalize truncate">
-              {user?.username || 'System Admin'}
+              {savedUsername}
             </span>
             <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
-              {user?.role || 'admin'}@lumina.io
+              {savedRole}@bookshelf.edu
             </span>
           </div>
         </div>
         
+        {/* Dark Mode Toggle Button */}
         <button
           onClick={() => setIsDarkMode(!isDarkMode)}
           className="flex items-center justify-center gap-2 w-full py-2 border border-gray-200 dark:border-slate-700 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition"

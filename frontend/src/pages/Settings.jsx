@@ -1,12 +1,14 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext';
 import { FiUser, FiLock, FiLogOut, FiSave } from 'react-icons/fi';
 
 export default function Settings() {
-  const { logout } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  // Grab the current username from local storage to display the profile
+  const currentUsername = localStorage.getItem('username') || 'Admin';
+  const initial = currentUsername.charAt(0).toUpperCase();
 
   const [formData, setFormData] = useState({
     username: '',
@@ -25,21 +27,46 @@ export default function Settings() {
     e.preventDefault();
     setStatus({ type: '', message: '' });
 
+    // 1. Validate passwords
     if (formData.newPassword && formData.newPassword !== formData.confirmPassword) {
       return setStatus({ type: 'error', message: 'Passwords do not match.' });
     }
 
+    // 2. Ensure at least one field is being updated
+    if (!formData.username && !formData.newPassword) {
+      return setStatus({ type: 'error', message: 'Please enter a new username or password to update.' });
+    }
+
     setLoading(true);
     try {
+      // 3. Explicitly grab and attach the token (Fixes the update failing)
+      const token = localStorage.getItem('token');
+      const config = {
+        headers: { Authorization: `Bearer ${token}` }
+      };
+
+      // 4. Build the payload
       const payload = {};
       if (formData.username) payload.username = formData.username;
       if (formData.newPassword) payload.newPassword = formData.newPassword;
 
-      await axios.put('http://localhost:5000/api/users/profile', payload);
+      // 5. Send to backend
+      await axios.put('http://localhost:5000/api/users/profile', payload, config);
       
-      setStatus({ type: 'success', message: 'Profile updated successfully!' });
-      setFormData({ username: '', newPassword: '', confirmPassword: '' }); // Clear form
+      // 6. If the username was changed, update LocalStorage so the Sidebar catches it!
+      if (payload.username) {
+        localStorage.setItem('username', payload.username);
+      }
+
+      setStatus({ type: 'success', message: 'Profile updated successfully! Refreshing...' });
+      
+      // 7. Reload the page after 1 second so the Sidebar avatar updates instantly
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+
     } catch (error) {
+      console.error("Update Error:", error);
       setStatus({ 
         type: 'error', 
         message: error.response?.data?.message || 'Failed to update profile.' 
@@ -50,15 +77,28 @@ export default function Settings() {
   };
 
   const handleLogout = () => {
-    logout(); // Clears token from localStorage and Context
-    navigate('/login'); // Redirects to login page
+    // Clear everything from local storage
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    localStorage.removeItem('username');
+    // Force redirect to login
+    navigate('/login');
+    window.location.reload(); 
   };
 
   return (
-    <div className="p-6 text-gray-900 dark:text-gray-100 max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold">System Settings</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">Manage your admin profile and system preferences.</p>
+    <div className="p-6 text-gray-900 dark:text-gray-100 max-w-4xl mx-auto h-full overflow-y-auto custom-scrollbar">
+      <div className="mb-8 flex items-center gap-4">
+        {/* Profile Avatar Header */}
+        <div className="w-14 h-14 rounded-full bg-blue-600 flex items-center justify-center text-white text-2xl font-bold uppercase shadow-md">
+          {initial}
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold">System Settings</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Managing profile for: <span className="font-semibold text-gray-700 dark:text-gray-300 capitalize">{currentUsername}</span>
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -73,7 +113,7 @@ export default function Settings() {
             
             <div className="p-6">
               {status.message && (
-                <div className={`mb-6 p-3 rounded-lg text-sm border ${status.type === 'error' ? 'bg-red-50 text-red-600 border-red-200 dark:bg-red-900/20 dark:border-red-800' : 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:border-green-800'}`}>
+                <div className={`mb-6 p-3 rounded-lg text-sm border ${status.type === 'error' ? 'bg-red-50 text-red-600 border-red-200 dark:bg-red-900/20 dark:border-red-800/50' : 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:border-green-800/50'}`}>
                   {status.message}
                 </div>
               )}
@@ -88,8 +128,8 @@ export default function Settings() {
                       name="username"
                       value={formData.username}
                       onChange={handleChange}
-                      placeholder="Enter new username"
-                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-[#0f172a] border border-gray-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
+                      placeholder={`Current: ${currentUsername}`}
+                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-[#0f172a] border border-gray-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-gray-900 dark:text-white" 
                     />
                   </div>
                 </div>
@@ -105,7 +145,7 @@ export default function Settings() {
                         value={formData.newPassword}
                         onChange={handleChange}
                         placeholder="••••••••"
-                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-[#0f172a] border border-gray-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
+                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-[#0f172a] border border-gray-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-gray-900 dark:text-white" 
                       />
                     </div>
                   </div>
@@ -119,7 +159,7 @@ export default function Settings() {
                         value={formData.confirmPassword}
                         onChange={handleChange}
                         placeholder="••••••••"
-                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-[#0f172a] border border-gray-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
+                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-[#0f172a] border border-gray-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-gray-900 dark:text-white" 
                       />
                     </div>
                   </div>
@@ -152,7 +192,7 @@ export default function Settings() {
               </p>
               <button 
                 onClick={handleLogout}
-                className="w-full flex items-center justify-center gap-2 bg-white dark:bg-transparent border border-gray-200 dark:border-slate-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:hover:bg-red-900/20 dark:hover:border-red-800 dark:hover:text-red-400 text-gray-700 dark:text-gray-300 px-5 py-2.5 rounded-lg transition font-medium"
+                className="w-full flex items-center justify-center gap-2 bg-white dark:bg-transparent border border-gray-200 dark:border-slate-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:hover:bg-red-900/20 dark:hover:border-red-800/50 dark:hover:text-red-400 text-gray-700 dark:text-gray-300 px-5 py-2.5 rounded-lg transition font-medium"
               >
                 <FiLogOut />
                 Sign Out

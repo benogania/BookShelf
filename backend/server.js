@@ -12,6 +12,7 @@ app.use('/api/books', require('./routes/books'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/users', require('./routes/users'));
+app.use('/api/logs', require('./routes/logs'));
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
