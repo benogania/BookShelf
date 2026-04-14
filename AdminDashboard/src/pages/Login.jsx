@@ -1,54 +1,56 @@
-import React, { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { AuthContext } from '../context/AuthContext';
-import { BsShieldCheck } from 'react-icons/bs';
+import React, { useState, useContext } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { AuthContext } from "../context/AuthContext";
+import { BsShieldCheck } from "react-icons/bs";
 
 export default function Login() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
- const handleLogin = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setIsLoading(true);
 
     try {
-      // 1. AUTO-CLEANUP: Wipe any standard user tokens so they don't contaminate the Admin session
-      localStorage.removeItem('token');
-      localStorage.removeItem('username');
-      localStorage.removeItem('role');
+      localStorage.removeItem("token");
+      localStorage.removeItem("username");
+      localStorage.removeItem("role");
 
-      // 2. MUST use the full localhost:5000 URL
-      const response = await axios.post('http://localhost:5000/api/auth/login', {
-        username,
-        password
-      });
+      const response = await axios.post(
+        "http://localhost:5000/api/auth/login",
+        {
+          username,
+          password,
+        },
+      );
 
-      // 3. BULLETPROOF PARSING: Catch the user data no matter how the backend formats it
       const currentToken = response.data.token;
-      const currentUser = response.data.user || response.data.admin || response.data.data;
-      
+      const currentUser =
+        response.data.user || response.data.admin || response.data.data;
+
       if (!currentUser) {
-        return setError('Server Error: Could not read user data from response.');
+        return setError(
+          "Server Error: Could not read user data from response.",
+        );
       }
 
-      // 4. SECURITY CHECK: Ensure they are actually an admin!
-      if (currentUser.role !== 'admin') {
-        return setError('Access Denied: You do not have administrator privileges.');
+      if (currentUser.role !== "admin") {
+        return setError(
+          "Access Denied: You do not have administrator privileges.",
+        );
       }
-      
-      // 5. Save to context and redirect (This will securely set 'adminToken')
+
       login(currentToken, currentUser.username);
-      navigate('/dashboard'); 
-      
+      navigate("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid username or password.');
+      setError(err.response?.data?.message || "Invalid username or password.");
     } finally {
       setIsLoading(false);
     }
@@ -57,8 +59,6 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0f172a] transition-colors duration-200 px-4">
       <div className="max-w-md w-full bg-white dark:bg-[#1e293b] rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-slate-800">
-        
-        {/* Header Section */}
         <div className="p-8 text-center border-b border-gray-100 dark:border-slate-800">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-50 dark:bg-blue-900/20 mb-4">
             <BsShieldCheck className="text-3xl text-blue-600 dark:text-blue-500" />
@@ -71,7 +71,6 @@ export default function Login() {
           </p>
         </div>
 
-        {/* Form Section */}
         <div className="p-8">
           {error && (
             <div className="mb-6 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 text-red-600 dark:text-red-400 text-sm rounded-lg text-center">
@@ -100,7 +99,6 @@ export default function Login() {
               </label>
               <input
                 type="password"
-             
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 bg-gray-50 dark:bg-[#0f172a] border border-gray-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white transition-colors"
@@ -116,12 +114,11 @@ export default function Login() {
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               ) : (
-                'Sign In'
+                "Sign In"
               )}
             </button>
           </form>
         </div>
-        
       </div>
     </div>
   );

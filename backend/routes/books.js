@@ -15,7 +15,6 @@ dirs.forEach((dir) => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
-
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     if (file.fieldname === "cover_image") cb(null, "./uploads/bookcovers");
@@ -26,7 +25,6 @@ const storage = multer.diskStorage({
     cb(null, `${Date.now()}-${cleanName}`);
   },
 });
-
 
 const upload = multer({ storage });
 
@@ -62,7 +60,6 @@ router.get("/random", verifyToken, async (req, res) => {
   }
 });
 
-
 router.get("/admin/restricted", [verifyToken, isAdmin], async (req, res) => {
   try {
     const fiveYearsAgo = new Date();
@@ -78,17 +75,15 @@ router.get("/admin/restricted", [verifyToken, isAdmin], async (req, res) => {
   }
 });
 
-
 router.put(
   "/admin/restrict-toggle/:id",
   [verifyToken, isAdmin],
   async (req, res) => {
     try {
-      const { action } = req.body; 
+      const { action } = req.body;
       let updateData = {};
 
       if (action === "restrict") {
-        
         const pastDate = new Date();
         pastDate.setFullYear(pastDate.getFullYear() - 6);
         updateData = { createdAt: pastDate, unrestricted: false };
@@ -160,11 +155,9 @@ router.post("/:id/log-download", verifyToken, async (req, res) => {
     const extractedId = req.userId || req.user?.id || req.user?._id || req.user;
 
     if (!extractedId) {
-      return res
-        .status(400)
-        .json({
-          message: "Token verified, but no User ID was found inside it.",
-        });
+      return res.status(400).json({
+        message: "Token verified, but no User ID was found inside it.",
+      });
     }
 
     const user = await User.findById(extractedId);
