@@ -13,11 +13,11 @@ export default function OldBooks() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // 1. Fetch user's saved books
+      
         const libraryRes = await axios.get('http://localhost:5000/api/users/library');
         setSavedBookIds(libraryRes.data.map(b => b._id));
 
-        // 2. Fetch ONLY the old books using our new age=old query!
+        
         const token = localStorage.getItem('clientToken') || localStorage.getItem('token');
         const res = await axios.get('http://localhost:5000/api/books?age=old&status=available&limit=50', {
             headers: { Authorization: `Bearer ${token}` }

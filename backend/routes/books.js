@@ -270,7 +270,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-// PUT: Update a book (Editing details OR Hiding it via isActive)
 router.put(
   "/:id",
   [
@@ -282,7 +281,6 @@ router.put(
     try {
       let updateData = { ...req.body };
 
-      // If the admin uploaded a new cover or PDF during the update, process them
       if (req.files) {
         if (req.files.cover_image) {
           updateData.cover_image = `http://localhost:5000/uploads/bookcovers/${req.files.cover_image[0].filename}`;
@@ -292,7 +290,6 @@ router.put(
         }
       }
 
-      // Safely format the genre array if it was sent as a comma-separated string
       if (typeof updateData.genre === "string") {
         updateData.genre = updateData.genre
           .split(",")
@@ -300,7 +297,6 @@ router.put(
           .filter(Boolean);
       }
 
-      // Update the database
       const updatedBook = await Book.findByIdAndUpdate(
         req.params.id,
         updateData,
@@ -319,7 +315,6 @@ router.put(
   },
 );
 
-// DELETE: Permanently remove a book from the database
 router.delete("/:id", [verifyToken, isAdmin], async (req, res) => {
   try {
     const deletedBook = await Book.findByIdAndDelete(req.params.id);

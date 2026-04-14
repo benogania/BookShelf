@@ -1,9 +1,6 @@
-/* src/index.css */
 @import "tailwindcss";
 
-/* This tells Tailwind v4 to apply 'dark:' styles when a '.dark' class is present */
 @variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* You can add custom theme variables here if needed */
 }
