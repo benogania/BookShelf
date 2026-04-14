@@ -21,7 +21,6 @@ const bookSchema = new mongoose.Schema({
   
   isActive: { type: Boolean, default: true },
 
-  // --- NEW FIELD ADDED HERE FOR THE ARCHIVE SYSTEM ---
   unrestricted: { type: Boolean, default: false } 
   
 }, { timestamps: true });

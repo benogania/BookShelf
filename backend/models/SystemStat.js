@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
 
 const systemStatSchema = new mongoose.Schema({
-  // A single document will hold the grand total
   totalApiRequests: { type: Number, default: 0 }
 });
 

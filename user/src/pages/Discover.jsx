@@ -114,14 +114,14 @@ export default function Discover() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const libraryRes = await axios.get('http://localhost:5000/api/users/library');
+        const libraryRes = await axios.get('http://192.168.11.160:5000/api/users/library');
         setSavedBookIds(libraryRes.data.map(b => b._id));
 
-        let endpoint = 'http://localhost:5000/api/books/random?limit=50';
+        let endpoint = 'http://192.168.11.160:5000/api/books/random?limit=50';
         let params = {};
 
         if (searchQuery || currentCategory !== 'All Books' || ageFilter) {
-          endpoint = 'http://localhost:5000/api/books';
+          endpoint = 'http://192.168.11.160:5000/api/books';
           params = {
             status: 'available', 
             limit: 50,
@@ -145,7 +145,7 @@ export default function Discover() {
   const toggleBookmark = async (e, bookId) => {
     e.stopPropagation(); 
     try {
-      const res = await axios.post(`http://localhost:5000/api/users/library/${bookId}`);
+      const res = await axios.post(`http://192.168.11.160:5000/api/users/library/${bookId}`);
       setSavedBookIds(res.data.savedBooks);
     } catch (error) {
       console.error('Failed to toggle bookmark', error);

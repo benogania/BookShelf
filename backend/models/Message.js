@@ -9,11 +9,10 @@ const messageSchema = new mongoose.Schema({
   fileName: { type: String },
   isRead: { type: Boolean, default: false },
   
-  // --- BOOK REQUEST FIELDS ---
+ 
   isBookRequest: { type: Boolean, default: false },
   requestedBookId: { type: mongoose.Schema.Types.ObjectId, ref: 'Book' },
   requestStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
-  // ---------------------------
 
   createdAt: { type: Date, default: Date.now }
 });

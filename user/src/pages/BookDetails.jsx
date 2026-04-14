@@ -23,11 +23,11 @@ export default function BookDetails() {
       window.scrollTo(0, 0);
 
       try {
-        const bookRes = await axios.get(`http://localhost:5000/api/books/${id}`);
+        const bookRes = await axios.get(`http://192.168.11.160:5000/api/books/${id}`);
         setBook(bookRes.data);
 
         if (bookRes.data?.category && bookRes.data.category !== 'Uncategorized') {
-          const relatedRes = await axios.get('http://localhost:5000/api/books', {
+          const relatedRes = await axios.get('http://192.168.11.160:5000/api/books', {
             params: { status: 'available', limit: 12, category: bookRes.data.category }
           });
           const filtered = relatedRes.data.data.filter(b => b._id !== id).slice(0, 12);
@@ -38,7 +38,7 @@ export default function BookDetails() {
       }
 
       try {
-        const libraryRes = await axios.get('http://localhost:5000/api/users/library');
+        const libraryRes = await axios.get('http://192.168.11.160:5000/api/users/library');
         if (Array.isArray(libraryRes.data)) {
           setSavedBookIds(libraryRes.data.map(b => b._id));
         }
@@ -56,7 +56,7 @@ export default function BookDetails() {
     e.preventDefault();
     e.stopPropagation();
     try {
-      const res = await axios.post(`http://localhost:5000/api/users/library/${bookId}`);
+      const res = await axios.post(`http://192.168.11.160:5000/api/users/library/${bookId}`);
       if (res.data && Array.isArray(res.data.savedBooks)) {
          setSavedBookIds(res.data.savedBooks);
       }
@@ -74,7 +74,7 @@ export default function BookDetails() {
       try {
         const token = localStorage.getItem('clientToken'); 
         await axios.post(
-          `http://localhost:5000/api/books/${book._id}/log-download`,
+          `http://192.168.11.160:5000/api/books/${book._id}/log-download`,
           {}, 
           { headers: { Authorization: `Bearer ${token}` } } 
         );
@@ -114,7 +114,7 @@ export default function BookDetails() {
   const handleRequestAccess = async () => {
     try {
       const token = localStorage.getItem('clientToken') || localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/messages/book-request', {
+      await axios.post('http://192.168.11.160:5000/api/messages/book-request', {
         bookId: book._id,
         bookTitle: book.title
       }, { headers: { Authorization: `Bearer ${token}` } });
