@@ -355,7 +355,8 @@ export default function PdfReader() {
       link.click();
       document.body.removeChild(link);
 
-    } catch (err) {
+    } catch (err) { 
+      
       console.error("Failed to export PDF", err);
       alert("Failed to export annotated PDF.");
     } finally {
