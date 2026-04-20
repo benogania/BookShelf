@@ -30,7 +30,7 @@ export default function BookDetails() {
 
       try {
         const bookRes = await axios.get(
-          `http://192.168.11.160:5000/api/books/${id}`,
+          `http://localhost:5000/api/books/${id}`,
         );
         setBook(bookRes.data);
 
@@ -39,7 +39,7 @@ export default function BookDetails() {
           bookRes.data.category !== "Uncategorized"
         ) {
           const relatedRes = await axios.get(
-            "http://192.168.11.160:5000/api/books",
+            "http://localhost:5000/api/books",
             {
               params: {
                 status: "available",
@@ -59,7 +59,7 @@ export default function BookDetails() {
 
       try {
         const libraryRes = await axios.get(
-          "http://192.168.11.160:5000/api/users/library",
+          "http://localhost:5000/api/users/library",
         );
         if (Array.isArray(libraryRes.data)) {
           setSavedBookIds(libraryRes.data.map((b) => b._id));
@@ -81,7 +81,7 @@ export default function BookDetails() {
     e.stopPropagation();
     try {
       const res = await axios.post(
-        `http://192.168.11.160:5000/api/users/library/${bookId}`,
+        `http://localhost:5000/api/users/library/${bookId}`,
       );
       if (res.data && Array.isArray(res.data.savedBooks)) {
         setSavedBookIds(res.data.savedBooks);
@@ -100,7 +100,7 @@ export default function BookDetails() {
       try {
         const token = localStorage.getItem("clientToken");
         await axios.post(
-          `http://192.168.11.160:5000/api/books/${book._id}/log-download`,
+          `http://localhost:5000/api/books/${book._id}/log-download`,
           {},
           { headers: { Authorization: `Bearer ${token}` } },
         );
@@ -145,7 +145,7 @@ export default function BookDetails() {
       const token =
         localStorage.getItem("clientToken") || localStorage.getItem("token");
       await axios.post(
-        "http://192.168.11.160:5000/api/messages/book-request",
+        "http://localhost:5000/api/messages/book-request",
         {
           bookId: book._id,
           bookTitle: book.title,

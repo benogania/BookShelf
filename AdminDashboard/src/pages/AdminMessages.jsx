@@ -3,11 +3,13 @@ import axios from "axios";
 import {
   FiSend,
   FiPaperclip,
-  FiImage,
   FiFile,
   FiUser,
   FiX,
   FiLock,
+  FiEdit,
+  FiSearch,
+  FiMessageSquare
 } from "react-icons/fi";
 
 export default function AdminMessages() {
@@ -18,6 +20,11 @@ export default function AdminMessages() {
   const [inputText, setInputText] = useState("");
   const [attachment, setAttachment] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
+  const [userSearch, setUserSearch] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -30,16 +37,37 @@ export default function AdminMessages() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    if (!userSearch.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    
+    const delayDebounce = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const token = localStorage.getItem("adminToken") || localStorage.getItem("token");
+        const res = await axios.get(`http://localhost:5000/api/users?search=${userSearch}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const studentsOnly = res.data.filter(u => u.role !== 'admin');
+        setSearchResults(studentsOnly);
+      } catch (err) {
+        console.error("Search failed", err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounce);
+  }, [userSearch]);
+
   const fetchConversations = async () => {
     try {
-      const token =
-        localStorage.getItem("adminToken") || localStorage.getItem("token");
-      const res = await axios.get(
-        "http://localhost:5000/api/messages/admin/conversations",
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      const token = localStorage.getItem("adminToken") || localStorage.getItem("token");
+      const res = await axios.get("http://localhost:5000/api/messages/admin/conversations", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setConversations(res.data);
     } catch (err) {
       console.error("Failed to load conversations", err);
@@ -49,14 +77,10 @@ export default function AdminMessages() {
   const loadChat = async (user) => {
     setActiveUser(user);
     try {
-      const token =
-        localStorage.getItem("adminToken") || localStorage.getItem("token");
-      const res = await axios.get(
-        `http://localhost:5000/api/messages/admin/conversation/${user._id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      const token = localStorage.getItem("adminToken") || localStorage.getItem("token");
+      const res = await axios.get(`http://localhost:5000/api/messages/admin/conversation/${user._id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setMessages(res.data);
 
       setConversations(
@@ -69,14 +93,33 @@ export default function AdminMessages() {
     }
   };
 
+  const startNewConversation = (user) => {
+    const existingConvo = conversations.find(c => c._id === user._id);
+    
+    const convoObj = existingConvo || {
+      _id: user._id,
+      userName: user.username,
+      unreadCount: 0,
+      lastMessage: "Start a new conversation...",
+      createdAt: new Date().toISOString()
+    };
+
+    if (!existingConvo) {
+      setConversations([convoObj, ...conversations]);
+    }
+    
+    loadChat(convoObj);
+    setIsNewChatModalOpen(false);
+    setUserSearch("");
+  };
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if ((!inputText.trim() && !attachment) || !activeUser) return;
 
     setLoading(true);
     try {
-      const token =
-        localStorage.getItem("adminToken") || localStorage.getItem("token");
+      const token = localStorage.getItem("adminToken") || localStorage.getItem("token");
       const formData = new FormData();
       if (inputText.trim()) formData.append("text", inputText);
       if (attachment) formData.append("attachment", attachment);
@@ -89,7 +132,7 @@ export default function AdminMessages() {
             Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data",
           },
-        },
+        }
       );
 
       setMessages((prev) => [...prev, res.data]);
@@ -97,7 +140,7 @@ export default function AdminMessages() {
       setAttachment(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
 
-      fetchConversations();
+      fetchConversations(); 
     } catch (err) {
       alert("Failed to send reply.");
     } finally {
@@ -107,15 +150,10 @@ export default function AdminMessages() {
 
   const handleRequestAction = async (messageId, action) => {
     try {
-      const token =
-        localStorage.getItem("adminToken") || localStorage.getItem("token");
-      await axios.put(
-        `http://localhost:5000/api/messages/admin/request-action/${messageId}`,
-        { action },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      const token = localStorage.getItem("adminToken") || localStorage.getItem("token");
+      await axios.put(`http://localhost:5000/api/messages/admin/request-action/${messageId}`, { action }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       if (activeUser) {
         loadChat(activeUser);
@@ -126,13 +164,23 @@ export default function AdminMessages() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-80px)] bg-slate-50 dark:bg-[#0f172a] rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 m-4 shadow-sm">
+    <div className="flex h-[calc(100vh-80px)] bg-slate-50 dark:bg-[#0f172a] rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 m-4 shadow-sm relative">
+      
+      {/* SIDEBAR */}
       <div className="w-1/3 min-w-[250px] border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-[#1e293b] flex flex-col">
-        <div className="p-4 border-b border-slate-200 dark:border-slate-800">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-[#0f172a]">
           <h2 className="font-bold text-slate-900 dark:text-white text-lg">
             Inbox
           </h2>
+          <button 
+            onClick={() => setIsNewChatModalOpen(true)}
+            className="p-2 bg-blue-100 text-blue-600 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 rounded-full transition-colors"
+            title="Start New Chat"
+          >
+            <FiEdit size={16} />
+          </button>
         </div>
+
         <div className="flex-1 overflow-y-auto custom-scrollbar">
           {conversations.length === 0 ? (
             <div className="p-6 text-center text-sm text-slate-400">
@@ -150,18 +198,14 @@ export default function AdminMessages() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-center mb-0.5">
-                    <h3
-                      className={`text-sm truncate ${convo.unreadCount > 0 ? "font-bold text-slate-900 dark:text-white" : "font-medium text-slate-700 dark:text-slate-300"}`}
-                    >
+                    <h3 className={`text-sm truncate ${convo.unreadCount > 0 ? "font-bold text-slate-900 dark:text-white" : "font-medium text-slate-700 dark:text-slate-300"}`}>
                       {convo.userName}
                     </h3>
                     <span className="text-[10px] text-slate-400 shrink-0">
                       {new Date(convo.createdAt).toLocaleDateString()}
                     </span>
                   </div>
-                  <p
-                    className={`text-xs truncate ${convo.unreadCount > 0 ? "text-slate-700 dark:text-slate-300 font-medium" : "text-slate-500"}`}
-                  >
+                  <p className={`text-xs truncate ${convo.unreadCount > 0 ? "text-slate-700 dark:text-slate-300 font-medium" : "text-slate-500"}`}>
                     {convo.lastMessage || "Sent an attachment"}
                   </p>
                 </div>
@@ -176,20 +220,33 @@ export default function AdminMessages() {
         </div>
       </div>
 
+      {/* MAIN CHAT AREA */}
       <div className="flex-1 flex flex-col bg-slate-50 dark:bg-[#0f172a]">
         {!activeUser ? (
-          <div className="flex-1 flex items-center justify-center text-slate-400">
-            Select a conversation to start chatting.
+          <div className="flex-1 flex flex-col items-center justify-center text-slate-400 gap-3">
+            <div className="w-16 h-16 bg-slate-200 dark:bg-slate-800 rounded-full flex items-center justify-center">
+              <FiMessageSquare size={24} className="text-slate-400 dark:text-slate-500" />
+            </div>
+            <p>Select a conversation or start a new chat.</p>
           </div>
         ) : (
           <>
-            <div className="px-6 py-4 bg-white dark:bg-[#1e293b] border-b border-slate-200 dark:border-slate-800 shadow-sm z-10">
+            <div className="px-6 py-4 bg-white dark:bg-[#1e293b] border-b border-slate-200 dark:border-slate-800 shadow-sm z-10 flex items-center gap-3">
+              <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                <FiUser size={14} />
+              </div>
               <h2 className="font-bold text-slate-900 dark:text-white">
                 {activeUser.userName}
               </h2>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 custom-scrollbar">
+              {messages.length === 0 && (
+                <div className="flex-1 flex items-center justify-center text-sm text-slate-400 italic">
+                  This is the beginning of your conversation with {activeUser.userName}.
+                </div>
+              )}
+
               {messages.map((msg, index) => {
                 const isAdmin = msg.sender === "admin";
 
@@ -201,36 +258,19 @@ export default function AdminMessages() {
                           <FiLock /> Archive Access Request
                         </div>
                         <div className="p-4">
-                          <p className="text-sm whitespace-pre-wrap leading-relaxed mb-4">
-                            {msg.text}
-                          </p>
-
+                          <p className="text-sm whitespace-pre-wrap leading-relaxed mb-4">{msg.text}</p>
                           {msg.requestStatus === "pending" ? (
                             <div className="flex gap-2">
-                              <button
-                                onClick={() =>
-                                  handleRequestAction(msg._id, "approved")
-                                }
-                                className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg text-sm font-medium transition-colors"
-                              >
+                              <button onClick={() => handleRequestAction(msg._id, "approved")} className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg text-sm font-medium transition-colors">
                                 Approve
                               </button>
-                              <button
-                                onClick={() =>
-                                  handleRequestAction(msg._id, "rejected")
-                                }
-                                className="flex-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-2 rounded-lg text-sm font-medium transition-colors"
-                              >
+                              <button onClick={() => handleRequestAction(msg._id, "rejected")} className="flex-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-2 rounded-lg text-sm font-medium transition-colors">
                                 Reject
                               </button>
                             </div>
                           ) : (
-                            <div
-                              className={`text-sm font-bold p-2 rounded text-center ${msg.requestStatus === "approved" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-500" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-500"}`}
-                            >
-                              {msg.requestStatus === "approved"
-                                ? "Request Approved"
-                                : "Request Rejected"}
+                            <div className={`text-sm font-bold p-2 rounded text-center ${msg.requestStatus === "approved" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-500" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-500"}`}>
+                              {msg.requestStatus === "approved" ? "Request Approved" : "Request Rejected"}
                             </div>
                           )}
                         </div>
@@ -240,53 +280,24 @@ export default function AdminMessages() {
                 }
 
                 return (
-                  <div
-                    key={index}
-                    className={`flex w-full ${isAdmin ? "justify-end" : "justify-start"}`}
-                  >
-                    <div
-                      className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${isAdmin ? "bg-blue-600 text-white rounded-br-sm shadow-md" : "bg-white dark:bg-[#1e293b] text-slate-800 dark:text-slate-200 rounded-bl-sm border border-slate-200 dark:border-slate-700 shadow-sm"}`}
-                    >
-                      {msg.text && (
-                        <p className="whitespace-pre-wrap leading-relaxed">
-                          {msg.text}
-                        </p>
-                      )}
+                  <div key={index} className={`flex w-full ${isAdmin ? "justify-end" : "justify-start"}`}>
+                    <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${isAdmin ? "bg-blue-600 text-white rounded-br-sm shadow-md" : "bg-white dark:bg-[#1e293b] text-slate-800 dark:text-slate-200 rounded-bl-sm border border-slate-200 dark:border-slate-700 shadow-sm"}`}>
+                      {msg.text && <p className="whitespace-pre-wrap leading-relaxed">{msg.text}</p>}
                       {msg.fileUrl && (
-                        <div
-                          className={`mt-2 ${msg.text ? "pt-2 border-t border-white/20" : ""}`}
-                        >
+                        <div className={`mt-2 ${msg.text ? "pt-2 border-t border-white/20" : ""}`}>
                           {msg.fileUrl.match(/\.(jpeg|jpg|gif|png)$/i) ? (
-                            <a
-                              href={msg.fileUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              <img
-                                src={msg.fileUrl}
-                                alt="attachment"
-                                className="rounded-lg max-h-48 object-cover border border-black/10 hover:opacity-90 transition-opacity"
-                              />
+                            <a href={msg.fileUrl} target="_blank" rel="noreferrer">
+                              <img src={msg.fileUrl} alt="attachment" className="rounded-lg max-h-48 object-cover border border-black/10 hover:opacity-90 transition-opacity" />
                             </a>
                           ) : (
-                            <a
-                              href={msg.fileUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="flex items-center gap-2 text-xs font-medium hover:underline"
-                            >
+                            <a href={msg.fileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs font-medium hover:underline">
                               <FiFile /> {msg.fileName}
                             </a>
                           )}
                         </div>
                       )}
-                      <div
-                        className={`text-[9px] mt-1.5 text-right ${isAdmin ? "text-blue-200" : "text-slate-400"}`}
-                      >
-                        {new Date(msg.createdAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                      <div className={`text-[9px] mt-1.5 text-right ${isAdmin ? "text-blue-200" : "text-slate-400"}`}>
+                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </div>
                     </div>
                   </div>
@@ -299,32 +310,13 @@ export default function AdminMessages() {
               {attachment && (
                 <div className="mb-2 inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg text-xs font-medium border border-blue-100 dark:border-blue-800/50">
                   <FiPaperclip />{" "}
-                  <span className="truncate max-w-[200px]">
-                    {attachment.name}
-                  </span>
-                  <button
-                    onClick={() => setAttachment(null)}
-                    className="ml-2 hover:text-red-500"
-                  >
-                    <FiX />
-                  </button>
+                  <span className="truncate max-w-[200px]">{attachment.name}</span>
+                  <button onClick={() => setAttachment(null)} className="ml-2 hover:text-red-500"><FiX /></button>
                 </div>
               )}
-              <form
-                onSubmit={handleSendMessage}
-                className="flex items-end gap-2"
-              >
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={(e) => setAttachment(e.target.files[0])}
-                  className="hidden"
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current.click()}
-                  className="p-3 text-slate-400 hover:text-blue-600 bg-slate-100 dark:bg-slate-800 rounded-xl transition-colors shrink-0"
-                >
+              <form onSubmit={handleSendMessage} className="flex items-end gap-2">
+                <input type="file" ref={fileInputRef} onChange={(e) => setAttachment(e.target.files[0])} className="hidden" />
+                <button type="button" onClick={() => fileInputRef.current.click()} className="p-3 text-slate-400 hover:text-blue-600 bg-slate-100 dark:bg-slate-800 rounded-xl transition-colors shrink-0">
                   <FiPaperclip className="text-lg" />
                 </button>
                 <textarea
@@ -334,11 +326,7 @@ export default function AdminMessages() {
                   onChange={(e) => setInputText(e.target.value)}
                   className="flex-1 bg-slate-100 dark:bg-slate-900 rounded-xl px-4 py-3 outline-none text-sm text-slate-900 dark:text-white resize-none custom-scrollbar"
                 />
-                <button
-                  type="submit"
-                  disabled={loading || (!inputText.trim() && !attachment)}
-                  className="p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md disabled:opacity-50 shrink-0 transition-colors"
-                >
+                <button type="submit" disabled={loading || (!inputText.trim() && !attachment)} className="p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md disabled:opacity-50 shrink-0 transition-colors">
                   <FiSend className="text-lg" />
                 </button>
               </form>
@@ -346,6 +334,56 @@ export default function AdminMessages() {
           </>
         )}
       </div>
+
+      {/* SEARCH MODAL */}
+      {isNewChatModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#1e293b] rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col max-h-[80vh]">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0f172a] flex items-center justify-between">
+              <h3 className="font-bold text-slate-900 dark:text-white">Start New Conversation</h3>
+              <button onClick={() => { setIsNewChatModalOpen(false); setUserSearch(''); setSearchResults([]); }} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+                <FiX size={20} />
+              </button>
+            </div>
+            
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800">
+              <div className="relative">
+                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Search for a student..."
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  className="w-full bg-slate-100 dark:bg-slate-800 border-none text-gray-900 dark:text-gray-100 rounded-lg pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
+              {!userSearch.trim() ? (
+                <div className="text-center text-sm text-slate-400 py-8">Type a username to search.</div>
+              ) : isSearching ? (
+                <div className="text-center text-sm text-slate-400 py-8 animate-pulse">Searching...</div>
+              ) : searchResults.length === 0 ? (
+                <div className="text-center text-sm text-slate-400 py-8">No students found matching "{userSearch}".</div>
+              ) : (
+                searchResults.map(user => (
+                  <div key={user._id} onClick={() => startNewConversation(user)} className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl cursor-pointer transition-colors">
+                    <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold capitalize">
+                      {user.username.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-900 dark:text-white capitalize">{user.username}</p>
+                      <p className="text-[10px] text-slate-500 font-mono">ID: {user._id.slice(-6)}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

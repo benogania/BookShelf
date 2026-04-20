@@ -40,7 +40,6 @@ export default function Dashboard() {
           localStorage.getItem("adminToken") || localStorage.getItem("token");
         const config = { headers: { Authorization: `Bearer ${adminToken}` } };
 
-        // Fetch unified system stats and the recent books
         const [systemRes, booksRes] = await Promise.all([
           axios
             .get("http://localhost:5000/api/system/dashboard-stats", config)
@@ -60,7 +59,6 @@ export default function Dashboard() {
             apiRequests: formatNumber(sysData.apiRequests || 0),
           },
           recentBooks: booksRes.data.data || [],
-          // The backend limits this to 6, but we slice it just to be perfectly safe
           logs: sysData.systemLogs ? sysData.systemLogs.slice(0, 6) : [],
         });
       } catch (error) {
@@ -135,6 +133,7 @@ export default function Dashboard() {
 
       {/* Bottom Layout: Inventory & Logs */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
         {/* Recently Added Inventory (Spans 2 columns) */}
         <div className="lg:col-span-2 bg-white dark:bg-[#1e293b] rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
           <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
@@ -146,69 +145,73 @@ export default function Dashboard() {
               View All →
             </Link>
           </div>
+          
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-max">
               <thead>
                 <tr className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-800/50">
-                  <th className="p-4 pb-3">Book Info</th>
+                  <th className="p-4 pb-3 w-1/2">Book Info</th>
                   <th className="p-4 pb-3">Category</th>
                   <th className="p-4 pb-3">Format</th>
                   <th className="p-4 pb-3 text-right">Added On</th>
                 </tr>
               </thead>
               <tbody>
-                {data.recentBooks.map((book) => (
-                  <tr
-                    key={book._id}
-                    className="border-b border-slate-100 dark:border-slate-800/40 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
-                  >
-                    <td className="p-4 flex gap-4 items-center border-none">
-                      <div className="w-10 h-14 bg-slate-100 dark:bg-slate-800 rounded shadow-sm overflow-hidden flex-shrink-0 flex items-center justify-center border border-slate-200 dark:border-slate-700">
-                        {book.cover_image ? (
-                          <img
-                            src={book.cover_image}
-                            alt={book.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-[9px] text-slate-400 text-center leading-tight p-1">
-                            No
-                            <br />
-                            Cover
-                          </span>
-                        )}
-                      </div>
-                      <div>
-                        <div className="font-semibold text-sm text-slate-900 dark:text-slate-100 line-clamp-1">
-                          {book.title}
-                        </div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
-                          {book.author}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4 text-sm text-slate-600 dark:text-slate-300">
-                      {book.category || "Uncategorized"}
-                    </td>
-                    <td className="p-4">
-                      <span className="px-3 py-1 bg-transparent text-blue-600 dark:text-blue-400 rounded-full text-xs font-medium border border-blue-200 dark:border-blue-800/60">
-                        {book.format || "PDF"}
-                      </span>
-                    </td>
-                    <td className="p-4 text-sm text-slate-500 dark:text-slate-400 text-right whitespace-nowrap">
-                      {new Date(book.createdAt).toISOString().split("T")[0]}
-                    </td>
-                  </tr>
-                ))}
-                {data.recentBooks.length === 0 && (
+                {data.recentBooks.length === 0 ? (
                   <tr>
-                    <td
-                      colSpan="4"
-                      className="p-8 text-center text-sm text-slate-500"
-                    >
+                    <td colSpan="4" className="p-8 text-center text-sm text-slate-500">
                       No books found.
                     </td>
                   </tr>
+                ) : (
+                  data.recentBooks.map((book) => (
+                    <tr
+                      key={book._id}
+                      className="border-b border-slate-100 dark:border-slate-800/40 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+                    >
+                      <td className="p-4 flex gap-4 items-center border-none overflow-hidden max-w-[250px] md:max-w-xs lg:max-w-sm">
+                        <div className="w-10 h-14 bg-slate-100 dark:bg-slate-800 rounded shadow-sm overflow-hidden flex-shrink-0 flex items-center justify-center border border-slate-200 dark:border-slate-700">
+                          {book.cover_image ? (
+                            <img
+                              src={book.cover_image}
+                              alt={book.title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-[9px] text-slate-400 text-center leading-tight p-1">
+                              No<br />Cover
+                            </span>
+                          )}
+                        </div>
+                        {/* --- THE FIX IS HERE: min-w-0 flex-1 forces the truncate to work --- */}
+                        <div className="min-w-0 flex-1">
+                          <div 
+                            className="font-semibold text-sm text-slate-900 dark:text-slate-100 truncate"
+                            title={book.title}
+                          >
+                            {book.title}
+                          </div>
+                          <div 
+                            className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate"
+                            title={book.author}
+                          >
+                            {book.author}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-4 text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                        {book.category || "Uncategorized"}
+                      </td>
+                      <td className="p-4 whitespace-nowrap">
+                        <span className="px-3 py-1 bg-transparent text-blue-600 dark:text-blue-400 rounded-full text-xs font-medium border border-blue-200 dark:border-blue-800/60">
+                          {book.format || "PDF"}
+                        </span>
+                      </td>
+                      <td className="p-4 text-sm text-slate-500 dark:text-slate-400 text-right whitespace-nowrap">
+                        {new Date(book.createdAt).toISOString().split("T")[0]}
+                      </td>
+                    </tr>
+                  ))
                 )}
               </tbody>
             </table>

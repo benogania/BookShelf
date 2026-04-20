@@ -147,6 +147,57 @@ router.post("/bulk", [verifyToken, isAdmin], async (req, res) => {
   }
 });
 
+// --- NEW: ADD SINGLE BOOK ROUTE ---
+router.post(
+  "/",
+  [
+    verifyToken,
+    isAdmin,
+    upload.fields([{ name: "cover_image" }, { name: "book_file" }]),
+  ],
+  async (req, res) => {
+    try {
+      let newData = { ...req.body };
+
+      // 1. Handle File Upload URLs
+      if (req.files) {
+        if (req.files.cover_image) {
+          // If you are moving to a physical device, remember to change localhost to your IP here eventually!
+          newData.cover_image = `http://localhost:5000/uploads/bookcovers/${req.files.cover_image[0].filename}`;
+        }
+        if (req.files.book_file) {
+          newData.download_link = `http://localhost:5000/uploads/books/${req.files.book_file[0].filename}`;
+        }
+      }
+
+      // 2. Handle Genre Array formatting (splitting comma-separated strings)
+      if (typeof newData.genre === "string") {
+        newData.genre = newData.genre
+          .split(",")
+          .map((g) => g.trim())
+          .filter(Boolean);
+      }
+
+      // 3. Handle Category Array formatting
+      if (typeof newData.category === "string") {
+        newData.category = newData.category
+          .split(",")
+          .map((c) => c.trim())
+          .filter(Boolean);
+      }
+
+      // 4. Save to Database
+      const newBook = new Book(newData);
+      const savedBook = await newBook.save();
+
+      res.status(201).json(savedBook);
+    } catch (error) {
+      console.error("Error creating book:", error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+);
+
 router.post("/:id/log-download", verifyToken, async (req, res) => {
   try {
     const book = await Book.findById(req.params.id);

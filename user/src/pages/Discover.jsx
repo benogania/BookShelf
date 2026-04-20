@@ -53,20 +53,23 @@ const BookCard = ({ book, isSaved, onToggleBookmark, navigate }) => {
           </div>
 
           <div className="flex items-center justify-end mt-4">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(`/read/${book._id}`);
-              }}
-              className={`${isRestricted ? "bg-orange-600 hover:bg-orange-500 shadow-orange-900/20" : "bg-blue-600 hover:bg-blue-500 shadow-blue-900/20"} text-white text-xs font-bold py-1.5 px-3 rounded flex items-center gap-1.5 transition-colors shadow-lg`}
-            >
-              {isRestricted ? (
-                <FiLock className="text-[10px]" />
-              ) : (
-                <FiPlay className="text-[10px]" />
-              )}{" "}
-              Read
-            </button>
+            {/* CONDITIONAL READ BUTTON: Only show if NOT restricted */}
+            {!isRestricted ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/read/${book._id}`);
+                }}
+                className="bg-blue-600 hover:bg-blue-500 shadow-blue-900/20 text-white text-xs font-bold py-1.5 px-3 rounded flex items-center gap-1.5 transition-colors shadow-lg"
+              >
+                <FiPlay className="text-[10px]" /> Read
+              </button>
+            ) : (
+              /* Display a visual lock badge instead of a clickable button */
+              <span className="bg-orange-900/60 border border-orange-500/50 text-orange-400 text-xs font-bold py-1.5 px-3 rounded flex items-center gap-1.5 shadow-lg">
+                <FiLock className="text-[10px]" /> Locked
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -125,15 +128,15 @@ export default function Discover() {
       setLoading(true);
       try {
         const libraryRes = await axios.get(
-          "http://192.168.11.160:5000/api/users/library",
+          "http://localhost:5000/api/users/library",
         );
         setSavedBookIds(libraryRes.data.map((b) => b._id));
 
-        let endpoint = "http://192.168.11.160:5000/api/books/random?limit=50";
+        let endpoint = "http://localhost:5000/api/books/random?limit=50";
         let params = {};
 
         if (searchQuery || currentCategory !== "All Books" || ageFilter) {
-          endpoint = "http://192.168.11.160:5000/api/books";
+          endpoint = "http://localhost:5000/api/books";
           params = {
             status: "available",
             limit: 50,
@@ -158,7 +161,7 @@ export default function Discover() {
     e.stopPropagation();
     try {
       const res = await axios.post(
-        `http://192.168.11.160:5000/api/users/library/${bookId}`,
+        `http://localhost:5000/api/users/library/${bookId}`,
       );
       setSavedBookIds(res.data.savedBooks);
     } catch (error) {

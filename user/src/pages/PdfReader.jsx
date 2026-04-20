@@ -399,17 +399,14 @@ export default function PdfReader() {
     )
   });
 
-  // ==========================================
-  // 3. DATA FETCHING & SAVING
-  // ==========================================
   useEffect(() => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("clientToken") || localStorage.getItem("token");
-        const bookRes = await axios.get(`http://192.168.11.160:5000/api/books/${id}`);
+        const bookRes = await axios.get(`http://localhost:5000/api/books/${id}`);
         setBook(bookRes.data);
 
-        const notesRes = await axios.get(`http://192.168.11.160:5000/api/notes/${id}`, {
+        const notesRes = await axios.get(`http://localhost:5000/api/notes/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         
@@ -433,7 +430,7 @@ export default function PdfReader() {
     try {
       const token = localStorage.getItem("clientToken") || localStorage.getItem("token");
       await axios.post(
-        `http://192.168.11.160:5000/api/notes/${id}`,
+        `http://localhost:5000/api/notes/${id}`,
         { content: JSON.stringify(notesArray) },
         { headers: { Authorization: `Bearer ${token}` } },
       );
@@ -449,13 +446,11 @@ export default function PdfReader() {
     }
   };
 
-  // ==========================================
-  // 4. BURN HIGHLIGHTS & UNDERLINES TO PDF
-  // ==========================================
+
   const handleDownloadAnnotatedPdf = async () => {
     setIsExporting(true);
     try {
-      const response = await fetch(`http://192.168.11.160:5000/api/books/read-pdf?url=${encodeURIComponent(book.download_link)}`);
+      const response = await fetch(`http://localhost:5000/api/books/read-pdf?url=${encodeURIComponent(book.download_link)}`);
       const existingPdfBytes = await response.arrayBuffer();
       const pdfDoc = await PDFDocument.load(existingPdfBytes);
 
@@ -515,9 +510,6 @@ export default function PdfReader() {
     }
   };
 
-  // ==========================================
-  // 5. SMART ASK ADMIN CAPTURE
-  // ==========================================
   const handleCaptureAndAsk = () => {
     setIsCapturing(true);
     try {
@@ -661,7 +653,7 @@ export default function PdfReader() {
            <div className="absolute inset-0 pointer-events-auto">
              <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
                <Viewer
-                 fileUrl={`http://192.168.11.160:5000/api/books/read-pdf?url=${encodeURIComponent(book.download_link)}`}
+                 fileUrl={`http://localhost:5000/api/books/read-pdf?url=${encodeURIComponent(book.download_link)}`}
                  plugins={[defaultLayoutPluginInstance, highlightPluginInstance]}
                  theme={document.documentElement.classList.contains('dark') ? 'dark' : 'light'}
                />
