@@ -253,7 +253,7 @@ export default function ClientLayout() {
         <div className="flex-1 py-6 overflow-y-auto custom-scrollbar px-4">
           <div className="text-[10px] font-bold text-gray-500 dark:text-slate-500 mb-3 px-2 uppercase tracking-widest">Menu</div>
           <NavLink to="/" end className={({isActive}) => `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${isActive && !searchParams.get('category') ? 'bg-blue-50 dark:bg-blue-600/10 text-blue-600 dark:text-blue-500 font-medium' : 'text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800/50 hover:text-gray-900 dark:hover:text-gray-200'}`}>
-            <FiCompass /> <span className="text-sm">Discover</span>
+            <FiCompass /> <span className="text-sm">Books</span>
           </NavLink>
           <NavLink to="/library" className={({isActive}) => `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${isActive ? 'bg-blue-50 dark:bg-blue-600/10 text-blue-600 dark:text-blue-500 font-medium' : 'text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800/50 hover:text-gray-900 dark:hover:text-gray-200'}`}>
             <FiBookmark /> <span className="text-sm">My Library</span>

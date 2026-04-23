@@ -1,7 +1,23 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { FiBookmark, FiFileText, FiLock, FiPlay } from "react-icons/fi";
+import { FiBookmark, FiFileText, FiLock, FiPlay, FiFilter } from "react-icons/fi";
+
+// --- CATEGORY LIST (Matching your screenshot) ---
+const CATEGORIES = [
+  "All Categories",
+  "Academic Writing",
+  "Agriculture",
+  "Business",
+  "Communication",
+  "Computers",
+  "Education",
+  "Engineering",
+  "Mathematics",
+  "Political Science",
+  "Science",
+  "Social Sciences"
+];
 
 const BookCard = ({ book, isSaved, onToggleBookmark, navigate }) => {
   const fiveYearsAgo = new Date();
@@ -112,7 +128,8 @@ export default function Discover() {
 
   const [displayedBooksCount, setDisplayedBooksCount] = useState(12);
 
-  const [searchParams] = useSearchParams();
+  // Extract both searchParams and the setter function to update the URL
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const currentCategory = searchParams.get("category") || "All Books";
@@ -173,6 +190,20 @@ export default function Discover() {
     setDisplayedBooksCount((prev) => prev + 12);
   };
 
+  // --- NEW: Category Change Handler ---
+  const handleCategoryChange = (e) => {
+    const selectedCategory = e.target.value;
+    const params = new URLSearchParams(searchParams);
+    
+    if (selectedCategory === "All Categories" || selectedCategory === "All Books") {
+      params.delete("category");
+    } else {
+      params.set("category", selectedCategory);
+    }
+    
+    setSearchParams(params);
+  };
+
   const getPageTitle = () => {
     if (ageFilter === "old") return "Archived Books";
     if (searchQuery) return `Search: "${searchQuery}"`;
@@ -188,7 +219,7 @@ export default function Discover() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto pb-12">
+    <div className="max-w-7xl mx-auto pb-12 px-4 md:px-0">
       <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 border-b border-gray-200 dark:border-slate-800 pb-4 transition-colors">
         <div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white mb-1 capitalize tracking-tight">
@@ -198,8 +229,37 @@ export default function Discover() {
             {getPageSubtitle()}
           </p>
         </div>
-        <div className="text-xs md:text-sm text-gray-400 dark:text-slate-500 font-medium mt-3 md:mt-0 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-full inline-block">
-          {books.length} results
+        
+        {/* --- NEW: Filters & Results Container --- */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mt-4 md:mt-0">
+          
+          {/* Custom Styled Select Dropdown */}
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FiFilter className="text-blue-500" />
+            </div>
+            <select
+              value={currentCategory === "All Books" ? "All Categories" : currentCategory}
+              onChange={handleCategoryChange}
+              className="pl-9 pr-8 py-2 w-full sm:w-auto bg-white dark:bg-[#1e293b] border border-blue-500 dark:border-blue-500/50 text-slate-700 dark:text-slate-200 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer shadow-sm hover:border-blue-600 transition-colors"
+            >
+              {CATEGORIES.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+            {/* Custom dropdown arrow to replace the default one hidden by appearance-none */}
+            <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none">
+              <svg className="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+
+          <div className="text-xs md:text-sm text-gray-400 dark:text-slate-500 font-medium bg-slate-100 dark:bg-slate-800 px-3 py-2 sm:py-1.5 rounded-lg sm:rounded-full inline-block whitespace-nowrap">
+            {books.length} results
+          </div>
         </div>
       </div>
 
